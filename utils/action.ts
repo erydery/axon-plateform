@@ -174,14 +174,21 @@ export async function getSectorsData() {
 }
 
 
+// utils/action.ts
+
 export async function deleteCourse(id: number) {
   try {
+    // 1. On supprime d'abord tous les chapitres liés à ce cours
+    await db.delete(chapters).where(eq(chapters.courseId, id));
+
+    // 2. Maintenant on peut supprimer le cours sans erreur
     await db.delete(courses).where(eq(courses.id, id));
+
     revalidatePath("/admin/cours");
     return { success: true };
   } catch (error) {
-    console.error("Erreur suppression cours:", error);
-    return { success: false, error: "Impossible de supprimer ce cours." };
+    console.error("Erreur suppression:", error);
+    return { success: false, error: "Impossible de supprimer le cours" };
   }
 }
 
@@ -208,24 +215,31 @@ export async function saveChapterAI(data: {
   content: string, // Le JSON stringifié de l'IA
 }) {
   try {
-    const fullData = JSON.parse(data.content);
+    // NETTOYAGE ET RÉPARATION DU JSON TRONQUÉ
+    let jsonString = data.content.trim();
+    
+    // Si l'IA a coupé la réponse (Unterminated string), on ferme les accolades manuellement
+    if (!jsonString.endsWith("}")) {
+      console.error("Format JSON incomplet détecté. Tentative de réparation...");
+      jsonString += '}}}'; 
+    }
+
+    const fullData = JSON.parse(jsonString);
 
     // 1. Insertion dans la table 'chapters'
-    // On récupère l'ID pour lier les exercices juste après
     const [newChapter] = await db.insert(chapters).values({
       courseId: data.courseId,
       title: data.title,
-      content: data.content, // Stocke tout le JSON (cours + problèmes de réflexion)
+      content: jsonString, // On stocke la version nettoyée
       createdAt: new Date().toISOString(),
     }).returning({ id: chapters.id });
 
-    // 2. Insertion des 10 QCM dans la table 'exercises'
-    // On vérifie si l'IA a bien généré la clé 'qcm' dans le JSON
+    // 2. Insertion des QCM dans la table 'exercises'
     if (newChapter && fullData.exercices?.qcm?.length > 0) {
       const qcmToInsert = fullData.exercices.qcm.map((q: any) => ({
         chapterId: newChapter.id,
         question: q.question,
-        options: q.options, // Array de texte
+        options: q.options, 
         answer: q.reponse,
         explanation: q.explication,
       }));
@@ -233,14 +247,16 @@ export async function saveChapterAI(data: {
       await db.insert(exercises).values(qcmToInsert);
     }
 
+    // IMPORTANT : Revalidation pour que les cartes apparaissent
     revalidatePath(`/admin/cours/${data.courseId}`);
+    
     return { success: true, data: newChapter };
   } catch (error) {
-    console.error("Erreur saveChapterAI:", error);
-    return { success: false, error: "Erreur lors de la sauvegarde." };
+    console.error("Erreur saveChapterAI détaillée:", error);
+    // On retourne l'erreur pour que le client sache que ça a échoué
+    return { success: false, error: "Erreur de parsing ou base de données." };
   }
 }
-
 // Version mise à jour pour récupérer les chapitres ET les exercices
 
 
@@ -359,3 +375,14 @@ export async function getFullSystemStats() {
     return null;
   }
 }
+
+
+export const deleteChapter = async (chapterId: number) => {
+  try {
+    await db.delete(chapters).where(eq(chapters.id, chapterId));
+    return { success: true };
+  } catch (error) {
+    console.error("Erreur lors de la suppression du chapitre:", error);
+    return { success: false, error: "Impossible de supprimer le chapitre" };
+  }
+};

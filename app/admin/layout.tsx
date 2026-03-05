@@ -106,9 +106,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="mt-auto pt-6 overflow-visible">
             <div className="bg-base-100 p-4 rounded-[24px] flex items-center gap-4 border border-base-300 shadow-sm relative overflow-visible">
               <div className="scale-110">
-                {/* Le composant UserButton est enveloppé dans une div avec overflow-visible 
-                  pour permettre au menu popup de Clerk de s'afficher par-dessus les autres éléments.
-                */}
+                
                 <UserButton 
                   afterSignOutUrl="/" 
                   appearance={{

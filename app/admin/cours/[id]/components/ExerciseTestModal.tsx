@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, CheckCircle2, HelpCircle, Eye, EyeOff, Brain, ListChecks, ArrowRight, MessageSquareQuote, AlertCircle } from "lucide-react";
+import { X, CheckCircle2, HelpCircle, Eye, EyeOff, Brain, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function ExerciseTestModal({ chapter, onClose }: { chapter: any, onClose: () => void }) {
   let data: any = {};
   try {
     data = typeof chapter.content === "string" ? JSON.parse(chapter.content) : chapter.content;
-  } catch (e) { console.error(e); }
+  } catch (e) { 
+    console.error("Erreur de parsing", e); 
+  }
 
   const [tab, setTab] = useState<"qcm" | "reflexion">("qcm");
   const [showAnswers, setShowAnswers] = useState<number[]>([]);
@@ -17,100 +19,94 @@ export default function ExerciseTestModal({ chapter, onClose }: { chapter: any, 
     setShowAnswers(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
   };
 
-  const qcmList = data.exercices?.qcm || data.exercises?.qcm || [];
-  const reflexionList = data.exercices?.reflexion || data.exercises?.reflexion || [];
+  // Nettoie le texte Markdown (astérisques) pour un affichage propre
+  const cleanText = (text: string) => {
+    if (!text) return "";
+    return text.replace(/\*\*/g, '').replace(/\*/g, '• ');
+  };
+
+  const container = data.exercices || data.exercises || {};
+  const qcmList = container.qcm || [];
+  const reflexionList = container.reflexion || container.reflexions || [];
 
   return (
     <dialog className="modal modal-open backdrop-blur-sm z-[110]">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="modal-box max-w-3xl w-[95%] bg-base-100 rounded-[30px] p-0 border-2 border-base-200 shadow-2xl flex flex-col max-h-[85vh]"
+        className="modal-box max-w-3xl w-[95%] bg-base-100 rounded-[35px] p-0 border-2 border-base-200 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
       >
-        
-        {/* HEADER COMPACT */}
-        <div className="p-5 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-base-200/30">
-          <div className="flex items-center gap-3">
-            <div className="bg-amber-500 p-2 rounded-xl text-white">
-              <CheckCircle2 size={18}/>
-            </div>
-            <div>
-              <h3 className="font-black italic uppercase tracking-tighter text-sm">Validation Quiz</h3>
-              <p className="text-[9px] opacity-40 uppercase truncate max-w-[150px]">{chapter.title}</p>
-            </div>
-          </div>
-          
-          <div className="flex bg-base-300/50 p-1 rounded-xl">
+        {/* HEADER TABS */}
+        <div className="p-6 border-b flex justify-between items-center bg-base-200/40">
+          <div className="flex bg-base-300/50 p-1.5 rounded-2xl">
             <button 
               onClick={() => setTab("qcm")}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${tab === 'qcm' ? 'bg-base-100 shadow-sm text-amber-600' : 'opacity-40 hover:opacity-100'}`}
+              className={`px-6 py-2 rounded-xl text-[10px] font-[1000] uppercase italic transition-all ${tab === 'qcm' ? 'bg-base-100 text-amber-600 shadow-md' : 'opacity-40'}`}
             >
-              QCM ({qcmList.length})
+              Validation QCM ({qcmList.length})
             </button>
             <button 
               onClick={() => setTab("reflexion")}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${tab === 'reflexion' ? 'bg-base-100 shadow-sm text-indigo-600' : 'opacity-40 hover:opacity-100'}`}
+              className={`px-6 py-2 rounded-xl text-[10px] font-[1000] uppercase italic transition-all ${tab === 'reflexion' ? 'bg-base-100 text-indigo-600 shadow-md' : 'opacity-40'}`}
             >
-              Réflexion ({reflexionList.length})
+              Études de Cas ({reflexionList.length})
             </button>
           </div>
-          
-          <button onClick={onClose} className="btn btn-xs btn-circle btn-ghost absolute right-4 top-4 sm:static"><X size={16}/></button>
+          <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:bg-red-500/10 hover:text-red-500"><X size={20}/></button>
         </div>
 
-        {/* ZONE DE TEST RÉDUITE */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 custom-scrollbar bg-base-100">
+        {/* CONTENT AREA */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-6 custom-scrollbar">
           <AnimatePresence mode="wait">
             {tab === "qcm" ? (
-              <motion.div key="qcm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <motion.div key="qcm" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                 {qcmList.map((q: any, i: number) => (
-                  <div key={i} className="bg-base-200/40 border border-base-200 rounded-2xl p-5 hover:border-amber-500/20 transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-[9px] font-black uppercase opacity-30 italic">Question 0{i+1}</span>
-                      <button onClick={() => toggleAnswer(i)} className="text-[10px] font-bold text-amber-600 flex items-center gap-1 hover:underline">
-                        {showAnswers.includes(i) ? <><EyeOff size={12}/> Masquer</> : <><Eye size={12}/> Voir Réponse</>}
+                  <div key={i} className="bg-base-200/30 border border-base-200 rounded-[25px] p-6 group transition-all">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] font-black uppercase opacity-20 italic tracking-widest">Question 0{i+1}</span>
+                      <button onClick={() => toggleAnswer(i)} className="text-[10px] font-black text-amber-600 flex items-center gap-2 uppercase italic bg-amber-500/5 px-3 py-1 rounded-full">
+                        {showAnswers.includes(i) ? <><EyeOff size={14}/> Masquer</> : <><Eye size={14}/> Voir la réponse</>}
                       </button>
                     </div>
-                    
-                    <p className="font-bold text-base mb-4 leading-tight">{q.question}</p>
-                    
-                    <div className="grid grid-cols-1 gap-2">
-                      {q.options.map((opt: string, idx: number) => {
+                    <p className="font-bold text-lg mb-6 italic leading-snug">{q.question}</p>
+                    <div className="grid grid-cols-1 gap-3">
+                      {(q.options || []).map((opt: string, idx: number) => {
                         const isCorrect = q.reponse === opt || q.answer === opt;
                         const reveal = showAnswers.includes(i);
                         return (
-                          <div key={idx} className={`p-3 rounded-xl border text-sm transition-all ${reveal && isCorrect ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 font-bold' : 'bg-base-100 border-base-200 opacity-70'}`}>
-                            <span className="opacity-40 mr-2 text-[10px]">{String.fromCharCode(65 + idx)}.</span> {opt}
+                          <div key={idx} className={`p-4 rounded-2xl border-2 transition-all text-sm font-bold ${reveal && isCorrect ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-700' : 'bg-base-100 border-base-200 opacity-60'}`}>
+                            <span className="opacity-30 mr-3 italic">{String.fromCharCode(65 + idx)}.</span> {opt}
                           </div>
                         );
                       })}
                     </div>
-
                     {showAnswers.includes(i) && (
-                      <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-4 bg-emerald-500/5 rounded-xl border-l-2 border-emerald-500 text-[11px] italic">
-                        <span className="font-black uppercase text-emerald-600 block mb-1">Explication :</span>
-                        {q.explication || q.explanation}
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-6 p-5 bg-emerald-500/5 rounded-2xl border-l-4 border-emerald-500 text-xs italic leading-relaxed text-emerald-800">
+                        <span className="font-black uppercase block mb-2 tracking-tighter">Analyse pédagogique :</span>
+                        {cleanText(q.explication || q.explanation || "Basé sur les standards du module.")}
                       </motion.div>
                     )}
                   </div>
                 ))}
               </motion.div>
             ) : (
-              <motion.div key="reflexion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="reflexion" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
                 {reflexionList.map((p: any, i: number) => (
-                  <div key={i} className="border-2 border-dashed border-base-300 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 text-indigo-500 mb-3 opacity-50">
-                      <Brain size={14}/>
-                      <span className="text-[9px] font-black uppercase italic tracking-widest">Réflexion {i+1}</span>
+                  <div key={i} className="border-2 border-dashed border-base-300 rounded-[30px] p-8 relative">
+                    <div className="absolute -top-3 left-8 bg-base-100 px-4 flex items-center gap-2 text-indigo-500">
+                      <Brain size={16}/>
+                      <span className="text-[10px] font-black uppercase italic italic">Défi Réflexif {i+1}</span>
                     </div>
-                    <p className="text-lg font-bold italic mb-4">"{p.enonce || p.question}"</p>
-                    <div className="collapse bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                    <p className="text-xl font-bold italic mb-6 leading-tight pt-2">
+                        "{p.enonce || p.question || "Problématique métier à analyser."}"
+                    </p>
+                    <div className="collapse bg-indigo-500/5 rounded-[20px] border border-indigo-500/10">
                       <input type="checkbox" className="min-h-0" /> 
-                      <div className="collapse-title min-h-0 py-3 px-4 text-[10px] font-black uppercase text-indigo-500 flex items-center gap-2">
-                        <ArrowRight size={14}/> Pistes de correction
+                      <div className="collapse-title min-h-0 py-4 px-6 text-[11px] font-[1000] uppercase text-indigo-500 flex items-center gap-2 cursor-pointer">
+                        <ArrowRight size={16}/> Pistes de résolution expert
                       </div>
-                      <div className="collapse-content text-xs italic opacity-70 px-4 pb-4">
-                        {p.pistesSolution || p.solution}
+                      <div className="collapse-content text-sm italic opacity-80 px-6 pb-6 whitespace-pre-line leading-relaxed border-t border-indigo-500/5 pt-4">
+                        {cleanText(p.solution || p.pistesSolution || "Consulter le support de cours.")}
                       </div>
                     </div>
                   </div>
@@ -120,27 +116,12 @@ export default function ExerciseTestModal({ chapter, onClose }: { chapter: any, 
           </AnimatePresence>
         </div>
 
-        {/* FOOTER COMPACT */}
-        <div className="p-5 border-t bg-base-200/20 flex justify-between items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 opacity-30 italic">
-            <AlertCircle size={12}/>
-            <p className="text-[9px] font-bold uppercase tracking-tighter">Preview Admin</p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button onClick={onClose} className="btn btn-sm rounded-xl font-bold uppercase italic text-[10px] flex-1">Retour</button>
-            <button className="btn btn-sm btn-primary rounded-xl px-6 font-black uppercase italic text-[10px] flex-1 shadow-lg shadow-primary/20">Publier</button>
-          </div>
+        {/* FOOTER */}
+        <div className="p-6 border-t bg-base-200/20 flex justify-end gap-3">
+          <button onClick={onClose} className="btn btn-ghost rounded-2xl font-[1000] uppercase italic text-[11px] px-8">Quitter</button>
+          <button className="btn btn-primary rounded-2xl px-10 font-[1000] uppercase italic text-[11px] shadow-lg shadow-primary/20 border-none">Enregistrer</button>
         </div>
       </motion.div>
     </dialog>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-10 opacity-20 text-center">
-      <HelpCircle size={40} className="mb-2" />
-      <p className="font-black italic uppercase text-sm">{message}</p>
-    </div>
   );
 }
