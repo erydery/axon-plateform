@@ -13,7 +13,7 @@ import { chatSession } from "@/utils/GeminiAIModal";
 import { getCourseWithChapters, saveChapterAI, deleteChapter } from "@/utils/action";
 import ChapterPreviewModal from "./components/ChapterPreviewModal";
 import ExerciseTestModal from "./components/ExerciseTestModal";
-import DeleteConfirmModal from "./components/DeleteConfirmModal"; // Ton nouveau composant
+import DeleteConfirmModal from "./components/DeleteConfirmModal";
 
 export default function CourseDetailsPage() {
   const { id } = useParams();
@@ -24,7 +24,6 @@ export default function CourseDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   
-  // États pour la gestion des modals et de la suppression
   const [selectedChapter, setSelectedChapter] = useState<any>(null);
   const [testChapter, setTestChapter] = useState<any>(null);
   const [chapterToDelete, setChapterToDelete] = useState<any>(null);
@@ -76,32 +75,36 @@ export default function CourseDetailsPage() {
 
   MISSION : Génère un contenu de cours magistral ultra-complet au format JSON PUR.
 
+  LOGIQUE VISUELLE AXON (CRITIQUE) :
+  1. Pour les PROCESSUS (flux, hiérarchies, cycles) : Utilise le champ "graphique" avec du code Mermaid.js.
+     - Règle Mermaid : Utilise TOUJOURS des guillemets pour le texte des nœuds : A["Texte"]. Pas de parenthèses.
+  2. Pour les DONNÉES MATHÉMATIQUES/STATISTIQUES (Régression, Nuages de points, Courbes) : Utilise le champ "donnees_stats".
+     - Format "donnees_stats" : Un tableau d'objets JSON [{"x": 10, "y": 15}, {"x": 20, "y": 25}, ...]. Génère au moins 10 points cohérents pour illustrer le concept.
+  3. Si aucun visuel n'est requis, mets les deux champs à null.
+
   RÈGLES DE FORMATAGE :
-  - Pour les données comparatives ou chiffrées, utilise EXCLUSIVEMENT des tableaux Markdown.
-  - Ne mets PAS de tableaux si le contenu est purement narratif ou théorique.
+  - Pour les données comparatives, utilise EXCLUSIVEMENT des tableaux Markdown.
   - Utilise des listes à puces pour les énumérations.
 
   STRUCTURE JSON STRICTE (NE PAS CHANGER LES CLÉS) :
   {
     "introduction": "...",
     "sections": [
-      { "titre": "...", "contenu": "...", "exemple": "..." }
+      { 
+        "titre": "...", 
+        "contenu": "...", 
+        "graphique": "code mermaid ou null", 
+        "donnees_stats": [objets x/y] ou null,
+        "exemple": "..." 
+      }
     ],
     "conclusion": "...",
     "exercices": {
       "qcm": [
-        { 
-          "question": "...", 
-          "options": ["...", "...", "...", "..."], 
-          "reponse": "copier exactement l'option correcte", 
-          "explication": "..." 
-        }
+        { "question": "...", "options": ["...", "...", "...", "..."], "reponse": "...", "explication": "..." }
       ],
       "reflexion": [
-        { 
-          "enonce": "...", 
-          "solution": "..." 
-        }
+        { "enonce": "...", "solution": "..." }
       ]
     }
   }
@@ -109,6 +112,7 @@ export default function CourseDetailsPage() {
   QUANTITÉ : 10 QCM et 5 exercices de reflexion.
   LANGUE : Français.
 `;
+
     try {
       const result = await chatSession.sendMessage(inputPrompt);
       const cleanJson = result.response.text().replace(/```json/g, "").replace(/```/g, "").trim();

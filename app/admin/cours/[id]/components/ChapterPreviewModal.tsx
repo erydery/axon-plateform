@@ -5,6 +5,8 @@ import { X, BookOpen, LogOut, Lightbulb, Hash } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm"; 
 import { motion, useScroll, useSpring } from "framer-motion";
+import MermaidChart from "./MermaidChart"; 
+import StatisticalChart from "./StatisticalChart";
 
 export default function ChapterPreviewModal({ chapter, onClose }: { chapter: any, onClose: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -20,16 +22,24 @@ export default function ChapterPreviewModal({ chapter, onClose }: { chapter: any
     return <div className="modal modal-open"><div className="modal-box text-error font-black italic">ERREUR DE FORMAT JSON</div></div>;
   }
 
-  // CONFIGURATION DU RENDU (SUPPORT TABLEAUX)
+  // Fonction pour scroller vers la section cliquée
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element && containerRef.current) {
+      containerRef.current.scrollTo({
+        top: element.offsetTop - 40,
+        behavior: "smooth"
+      });
+    }
+  };
+
   const MarkdownConfig = {
     remarkPlugins: [remarkGfm],
     components: {
       table: ({ children }: any) => (
         <div className="my-10 overflow-hidden border-2 border-base-300 rounded-[30px] bg-base-100 shadow-xl">
           <div className="overflow-x-auto">
-            <table className="table table-zebra w-full border-separate border-spacing-0">
-              {children}
-            </table>
+            <table className="table table-zebra w-full border-separate border-spacing-0">{children}</table>
           </div>
         </div>
       ),
@@ -44,9 +54,7 @@ export default function ChapterPreviewModal({ chapter, onClose }: { chapter: any
         </li>
       ),
       blockquote: ({ children }: any) => (
-        <div className="my-10 border-l-[12px] border-primary bg-primary/5 p-10 rounded-r-[40px] italic font-bold text-xl opacity-90 shadow-inner">
-          {children}
-        </div>
+        <div className="my-10 border-l-[12px] border-primary bg-primary/5 p-10 rounded-r-[40px] italic font-bold text-xl opacity-90 shadow-inner">{children}</div>
       )
     }
   };
@@ -70,19 +78,33 @@ export default function ChapterPreviewModal({ chapter, onClose }: { chapter: any
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          <aside className="hidden lg:flex w-72 border-r border-base-300 bg-base-200/10 flex-col p-8 overflow-y-auto shrink-0">
-            <p className="text-[9px] font-black uppercase opacity-30 mb-6 italic tracking-widest underline underline-offset-8 decoration-primary">Sommaire Technique</p>
-            <nav className="space-y-3">
+          <aside className="hidden lg:flex w-80 border-r border-base-300 bg-base-200/10 flex-col p-8 overflow-y-auto shrink-0">
+            <p className="text-[9px] font-black uppercase opacity-30 mb-8 italic tracking-widest underline underline-offset-8 decoration-primary">Navigation Axon</p>
+            <nav className="space-y-4">
+              <button 
+                onClick={() => scrollToSection('intro')}
+                className="flex items-center gap-4 w-full text-left group transition-all"
+              >
+                <span className="text-[10px] font-black text-primary opacity-40 group-hover:opacity-100 transition-opacity">00</span>
+                <span className="text-[11px] font-[1000] uppercase italic tracking-tighter opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">Introduction</span>
+              </button>
+              
               {sections.map((s: any, i: number) => (
-                <div key={i} className="flex items-start gap-4 px-2 py-1 text-[10px] font-black uppercase italic opacity-60">
-                  <span className="text-primary">0{i+1}</span>
-                  <span className="truncate">{s.titre}</span>
-                </div>
+                <button 
+                  key={i} 
+                  onClick={() => scrollToSection(`section-${i}`)}
+                  className="flex items-start gap-4 w-full text-left group transition-all"
+                >
+                  <span className="text-[10px] font-black text-primary opacity-40 group-hover:opacity-100 transition-opacity">0{i+1}</span>
+                  <span className="text-[11px] font-[1000] uppercase italic tracking-tighter opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all line-clamp-2">
+                    {s.titre}
+                  </span>
+                </button>
               ))}
             </nav>
           </aside>
 
-          <main ref={containerRef} className="flex-1 overflow-y-auto bg-base-100/50 scroll-smooth">
+          <main ref={containerRef} className="flex-1 overflow-y-auto bg-base-100/50 scroll-smooth relative">
             <div className="max-w-3xl mx-auto px-8 py-20 pb-48 space-y-28">
               
               <section id="intro">
@@ -93,18 +115,20 @@ export default function ChapterPreviewModal({ chapter, onClose }: { chapter: any
               </section>
 
               {sections.map((s: any, i: number) => (
-                <section key={i} className="group">
+                <section key={i} id={`section-${i}`} className="group scroll-mt-10">
                   <div className="flex items-center gap-6 mb-10">
                     <span className="text-6xl font-[1000] italic opacity-5 group-hover:opacity-20 transition-opacity">0{i+1}</span>
                     <h2 className="text-3xl font-[1000] italic uppercase tracking-tighter border-b-4 border-base-200 pb-2 group-hover:border-primary transition-all">
                       {s.titre}
                     </h2>
                   </div>
-                  <div className="prose prose-lg max-w-none mb-12">
+
+                  {s.graphique && <MermaidChart chart={s.graphique} />}
+                  {s.donnees_stats && <StatisticalChart data={s.donnees_stats} />}
+
+                  <div className="prose prose-lg max-w-none mb-12 italic">
                     <ReactMarkdown {...MarkdownConfig}>{s.contenu}</ReactMarkdown>
                   </div>
-
-                  
 
                   {s.exemple && (
                     <div className="mt-12 bg-base-200/60 p-10 rounded-[45px] border-4 border-primary/5 relative shadow-inner overflow-hidden">
